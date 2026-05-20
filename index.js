@@ -31,6 +31,13 @@ async function server() {
     const teacherCollection = db.collection("teachers");
     const bookingsCollection = db.collection("bookings");
 
+    //create a new teacher
+    app.post('/teachers', async (req, res) => {
+        const teacher = req.body;
+        const result = await teacherCollection.insertOne(teacher);
+        res.send(result);
+    });
+
 
 
 
