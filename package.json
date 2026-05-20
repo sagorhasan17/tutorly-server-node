@@ -1,16 +1,24 @@
 {
   "name": "tutorly-server-node",
   "version": "1.0.0",
-  "description": "tutorly server built with Node.js and Express.js",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sagorhasan17/tutorly-server-node.git"
+  },
   "keywords": [],
-  "author": "Sagor Hossain",
+  "author": "",
   "license": "ISC",
   "type": "module",
+  "bugs": {
+    "url": "https://github.com/sagorhasan17/tutorly-server-node/issues"
+  },
+  "homepage": "https://github.com/sagorhasan17/tutorly-server-node#readme",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

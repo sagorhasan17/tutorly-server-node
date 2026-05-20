@@ -38,6 +38,12 @@ async function server() {
         res.send(result);
     });
 
+    //get all teachers
+    app.get('/teachers/all', async (req, res) => {
+        const teachers = await teacherCollection.find().toArray();
+        res.send(teachers);
+    });
+
 
 
 
