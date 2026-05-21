@@ -1,7 +1,8 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
-import { MongoClient, ServerApiVersion } from 'mongodb';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { MongoClient, ObjectId, ServerApiVersion } from 'mongodb';
 dotenv.config();
 
 const uri = process.env.MONGODB_URI;
@@ -24,6 +25,28 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
+//middleware function
+const jwks = createRemoteJWKSet(new URL(`${process.env.LOCALHOST_URI}/api/auth/jwks`));
+const verifyToken = async(req, res, next) => {
+    const authHeader = await req.headers.authorization;
+    console.log(authHeader)
+    if(!authHeader){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+    const token = authHeader.split(' ')[1];
+    if(!token){
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+
+    try {
+        const {payload} = await jwtVerify(token, jwks)
+        next()
+    } catch (error) {
+        return res.status(401).send({message: 'unauthorized access'})
+    }
+    
+}
 async function server() {
   try {
     await client.connect();
@@ -32,16 +55,30 @@ async function server() {
     const bookingsCollection = db.collection("bookings");
 
     //create a new teacher
-    app.post('/teachers', async (req, res) => {
+    app.post('/teachers',verifyToken, async (req, res) => {
         const teacher = req.body;
         const result = await teacherCollection.insertOne(teacher);
         res.send(result);
     });
 
     //get all teachers
-    app.get('/teachers/all', async (req, res) => {
+    app.get('/teachers/all',verifyToken, async (req, res) => {
         const teachers = await teacherCollection.find().toArray();
         res.send(teachers);
+    });
+
+    //popular 
+    app.get('/teachers/popular',verifyToken, async (req, res) => {
+        const teachers = await teacherCollection.find().limit(6).toArray();
+        res.send(teachers);
+    });
+
+    //get single teacher
+    app.get('/teachers/:id',verifyToken, async (req, res) => {
+        const id = req.params.id;
+        const queryID = { _id: new ObjectId(id) };
+        const teacher = await teacherCollection.findOne(queryID);
+        res.send(teacher);
     });
 
 
