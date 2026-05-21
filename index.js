@@ -27,10 +27,9 @@ const client = new MongoClient(uri, {
 });
 
 //middleware function
-const jwks = createRemoteJWKSet(new URL(`${process.env.LOCALHOST_URI}/api/auth/jwks`));
+const jwks = createRemoteJWKSet(new URL(`${process.env.CLIENT_URL}/api/auth/jwks`));
 const verifyToken = async(req, res, next) => {
     const authHeader = await req.headers.authorization;
-    console.log(authHeader)
     if(!authHeader){
         return res.status(401).send({message: 'unauthorized access'})
     }
@@ -49,7 +48,7 @@ const verifyToken = async(req, res, next) => {
 }
 async function server() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("tutorlyDB");
     const teacherCollection = db.collection("teachers");
     const bookingsCollection = db.collection("bookings");
@@ -60,6 +59,44 @@ async function server() {
         const result = await teacherCollection.insertOne(teacher);
         res.send(result);
     });
+//create a new booking
+   app.post("/bookings/create", async (req, res) => {
+  try {
+    const bookingData = req.body;
+
+    // check already booking
+    const query = {
+      email: bookingData.email,
+      tutorName: bookingData.tutorName,
+    };
+
+    const alreadyBooked = await bookingsCollection.findOne(query);
+
+    if (alreadyBooked) {
+      return res.status(400).send({
+        success: false,
+        message: "You already booked this tutor",
+      });
+    }
+
+    // create booking
+    const result = await bookingsCollection.insertOne(bookingData);
+
+    res.status(201).send({
+      success: true,
+      message: "Booking successful",
+      result,
+    });
+
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).send({
+      success: false,
+      message: "Failed to create booking",
+    });
+  }
+});
 
     //get all teachers
     app.get('/teachers/all',verifyToken, async (req, res) => {
@@ -81,10 +118,23 @@ async function server() {
         res.send(teacher);
     });
 
+    //get my booking 
+app.get("/my-bookings", async (req, res) => {
+  const email = req.query.email;
+
+  const bookings = await bookingsCollection
+    .find({ email: email })
+    .toArray();
+
+  console.log(bookings);
+
+  res.send(bookings);
+});
 
 
 
-    await client.db("tutorlyDB").command({ ping: 1 });
+
+    // await client.db("tutorlyDB").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
