@@ -61,79 +61,73 @@ async function server() {
       res.send(result);
     });
     //create a new booking
- app.post("/bookings/create", async (req, res) => {
-  try {
-    const bookingData = req.body;
-    // check already booked
-    const alreadyBooked =
-      await bookingsCollection.findOne({
-        email: bookingData.email,
-        tutorName: bookingData.tutorName,
-      });
-    if (alreadyBooked) {
-      return res.status(400).send({
-        success: false,
-        message:
-          "You already booked this tutor",
-      });
-    }
-    // get teacher
-    const teacher = await teacherCollection.findOne({_id: new ObjectId(bookingData.tutorId),});
-    // teacher not found
-    if (!teacher) {
-      return res.status(404).send({
-        success: false,
-        message: "Tutor not found",
-      });
-    }
-    // slot check
-    if (Number(teacher.totalSlots) <= 0) {
-      return res.status(400).send({
-        success: false,
-        message: "No slots available",
-      });
-    }
-    // booking date check
-    const today = new Date();
-    const sessionStartDate = new Date(teacher.sessionStartDate);
-    if (today > sessionStartDate) {
-      return res.status(400).send({
-        success: false,
-        message:
-          "Booking date expired",
-      });
-    }
-    // create booking
-    const result = await bookingsCollection.insertOne(
-        bookingData
-      );
-    // decrease slot
-    await teacherCollection.updateOne(
-      {
-        _id: new ObjectId(
-          bookingData.tutorId
-        ),
-      },
-      {
-        $inc: {
-          totalSlots: -1,
-        },
+    app.post("/bookings/create", async (req, res) => {
+      try {
+        const bookingData = req.body;
+        // check already booked
+        const alreadyBooked = await bookingsCollection.findOne({
+          email: bookingData.email,
+          tutorName: bookingData.tutorName,
+        });
+        if (alreadyBooked) {
+          return res.status(400).send({
+            success: false,
+            message: "You already booked this tutor",
+          });
+        }
+        // get teacher
+        const teacher = await teacherCollection.findOne({
+          _id: new ObjectId(bookingData.tutorId),
+        });
+        // teacher not found
+        if (!teacher) {
+          return res.status(404).send({
+            success: false,
+            message: "Tutor not found",
+          });
+        }
+        // slot check
+        if (Number(teacher.totalSlots) <= 0) {
+          return res.status(400).send({
+            success: false,
+            message: "No slots available",
+          });
+        }
+        // booking date check
+        const today = new Date();
+        const sessionStartDate = new Date(teacher.sessionStartDate);
+        if (today > sessionStartDate) {
+          return res.status(400).send({
+            success: false,
+            message: "Booking date expired",
+          });
+        }
+        // create booking
+        const result = await bookingsCollection.insertOne(bookingData);
+        // decrease slot
+        await teacherCollection.updateOne(
+          {
+            _id: new ObjectId(bookingData.tutorId),
+          },
+          {
+            $inc: {
+              totalSlots: -1,
+            },
+          },
+        );
+        res.status(201).send({
+          success: true,
+          message: "Booking successful",
+          result,
+        });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to create booking",
+        });
       }
-    );
-    res.status(201).send({
-      success: true,
-      message: "Booking successful",
-      result,
     });
-  } catch (error) {
-    console.log(error);
-    res.status(500).send({
-      success: false,
-      message:
-        "Failed to create booking",
-    });
-  }
-});
 
     //get all teachers
     app.get("/teachers/all", async (req, res) => {
@@ -167,6 +161,65 @@ async function server() {
 
       res.send(bookings);
     });
+
+    // cancel booking route
+
+    app.patch("/bookings/cancel/:id", async (req, res) => {
+      try {
+        const {id} = await req.params;
+
+        // get booking
+
+        const booking = await bookingsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!booking) {
+          return res.status(404).send({
+            success: false,
+            message: "Booking not found",
+          });
+        }
+
+        // update booking status
+        const result = await bookingsCollection.updateOne(
+          {
+            _id: new ObjectId(id),
+          },
+          {
+            $set: {
+              currentStatus: "cancelled",
+            },
+          },
+        );
+
+        // increase slot again
+        await teacherCollection.updateOne(
+          {
+            _id: new ObjectId(booking.tutorId),
+          },
+          {
+            $inc: {
+              totalSlots: 1,
+            },
+          },
+        );
+        res.send({
+          success: true,
+          message: "Booking cancelled",
+          result,
+        });
+      } catch (error) {
+        console.log(error);
+        res.status(500).send({
+          success: false,
+          message: "Failed to cancel booking",
+        });
+      }
+    });
+
+
+    
 
     await client.db("tutorlyDB").command({ ping: 1 });
     console.log(
