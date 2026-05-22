@@ -55,11 +55,12 @@ async function server() {
     const bookingsCollection = db.collection("bookings");
 
     //create a new teacher
-    app.post("/teachers", verifyToken, async (req, res) => {
+    app.post("/add-tutor", async (req, res) => {
       const teacher = req.body;
       const result = await teacherCollection.insertOne(teacher);
       res.send(result);
     });
+
     //create a new booking
     app.post("/bookings/create", async (req, res) => {
       try {
@@ -79,6 +80,7 @@ async function server() {
         const teacher = await teacherCollection.findOne({
           _id: new ObjectId(bookingData.tutorId),
         });
+
         // teacher not found
         if (!teacher) {
           return res.status(404).send({
