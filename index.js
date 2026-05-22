@@ -49,7 +49,7 @@ const verifyToken = async (req, res, next) => {
 };
 async function server() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("tutorlyDB");
     const teacherCollection = db.collection("teachers");
     const bookingsCollection = db.collection("bookings");
@@ -221,10 +221,8 @@ async function server() {
 
     
 
-    await client.db("tutorlyDB").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!",
-    );
+    // await client.db("tutorlyDB").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!",);
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
