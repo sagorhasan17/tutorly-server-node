@@ -39,14 +39,17 @@ const verifyToken = async (req, res, next) => {
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
+  
 
   try {
     const { payload } = await jwtVerify(token, jwks);
     next();
+    
   } catch (error) {
     return res.status(401).send({ message: "unauthorized access" });
   }
 };
+
 async function server() {
   try {
     // await client.connect();
@@ -190,7 +193,7 @@ async function server() {
     });
 
     //get single teacher
-    app.get("/teachers/:id", async (req, res) => {
+    app.get("/teachers/:id",verifyToken, async (req, res) => {
       const id = req.params.id;
       const queryID = { _id: new ObjectId(id) };
       const teacher = await teacherCollection.findOne(queryID);
@@ -200,22 +203,17 @@ async function server() {
     //get my booking
     app.get("/my-bookings", async (req, res) => {
       const email = req.query.email;
-
       const bookings = await bookingsCollection
         .find({ email: email })
         .toArray();
-
       res.send(bookings);
     });
 
     // cancel booking route
-
     app.patch("/bookings/cancel/:id", async (req, res) => {
       try {
         const { id } = await req.params;
-
         // get booking
-
         const booking = await bookingsCollection.findOne({
           _id: new ObjectId(id),
         });
@@ -265,7 +263,7 @@ async function server() {
     });
 
     //get my tutor
-    app.get("/my-tutors", async (req, res) => {
+    app.get("/my-tutors",verifyToken, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         return res.status(400).send({
