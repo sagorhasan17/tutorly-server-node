@@ -39,12 +39,10 @@ const verifyToken = async (req, res, next) => {
   if (!token) {
     return res.status(401).send({ message: "unauthorized access" });
   }
-  
 
   try {
     const { payload } = await jwtVerify(token, jwks);
     next();
-    
   } catch (error) {
     return res.status(401).send({ message: "unauthorized access" });
   }
@@ -164,36 +162,47 @@ async function server() {
     });
 
     //search teacher
-//     app.get("/teachers", async (req, res) => {
-//   try {
-//     const search = req.query.search || "";
+    app.get("/teachers", async (req, res) => {
+      try {
+        const search = req.query.search || "";
+        const startTime = req.query.startTime || "";
+        const endTime = req.query.endTime || "";
+        const query = {};
+        // Search by tutor name
+        if (search) {
+          query.tutorName = {
+            $regex: search,
+            $options: "i",
+          };
+        }
+        // Filter use time
+        if (startTime && endTime) {
+          query.startTime = {
+            $gte: startTime,
+          };
+          query.endTime = {
+            $lte: endTime,
+          };
+        }
+        const result = await teacherCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.log(error);
 
-//     const query = {
-//       tutorName: {
-//         $regex: search,
-//         $options: "i",
-//       },
-//     };
-//     console.log(query);
-//     const result = await teacherCollection.find(query).toArray();
-//     res.send(result);
-//   } catch (error) {
-//     console.log(error);
+        res.status(500).send({
+          message: "Failed to fetch teachers",
+        });
+      }
+    });
 
-//     res.status(500).send({
-//       message: "Failed to fetch teachers",
-//     });
-//   }
-// });
-
-    //popular
+    //popular teachers
     app.get("/teachers/popular", async (req, res) => {
       const teachers = await teacherCollection.find().limit(6).toArray();
       res.send(teachers);
     });
 
     //get single teacher
-    app.get("/teachers/:id",verifyToken, async (req, res) => {
+    app.get("/teachers/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const queryID = { _id: new ObjectId(id) };
       const teacher = await teacherCollection.findOne(queryID);
@@ -263,7 +272,7 @@ async function server() {
     });
 
     //get my tutor
-    app.get("/my-tutors",verifyToken, async (req, res) => {
+    app.get("/my-tutors", verifyToken, async (req, res) => {
       const email = req.query.email;
       if (!email) {
         return res.status(400).send({
@@ -274,17 +283,18 @@ async function server() {
       res.send(result);
     });
 
-
     //Delete Tutor
     app.delete("/tutors/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)};
+      const query = { _id: new ObjectId(id) };
       const result = await teacherCollection.deleteOne(query);
       res.send(result);
     });
 
     // await client.db("tutorlyDB").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
