@@ -50,6 +50,7 @@ console.log(jwks)
     
     next();
   } catch (error) {
+    console.log(error);
     return res.status(401).send({ message: "unauthorized access" });
   }
 };
